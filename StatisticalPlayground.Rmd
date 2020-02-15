@@ -1,0 +1,181 @@
+---
+title: "STAT 341/641 Homework 1"
+author: "Firas Fakih"
+date: "February 11th 2020"
+output: html_document
+---
+---
+
+
+* * *
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
+```
+
+
+
+* * *
+
+## Question 2: Compute a Covariance matrix 
+
+```{r}
+covariance <- function(x){
+  n = nrow(x)
+  xcol = scale(x,center = TRUE,scale = FALSE)
+  covar = t(xcol) %*% xcol/(n-1)
+  return(covar)
+}
+
+library(tidyverse)
+Diabetes <- read.csv(file = "/Users/firasfakih/Desktop/diabetes.csv")
+# Diabetes data
+names(Diabetes)
+Diabetes <- Diabetes %>% select(BloodPressure,Glucose,BMI,Age)
+covariance(Diabetes)
+# Compare with cov function
+cov(Diabetes)
+
+install.packages("corrplot")
+library(corrplot)
+correlation <- cor(Diabetes)
+corrplot(correlation,method = 'number')
+
+```
+**We find that the values are very similar, the diagonals are 1 in the covariance matrix, because cov (A,A) = 1, cov(B,B) = 1 and so on. Also, each value is exactly equal to the value corresponding to it symmetrically. This is because cov(A,B) = cov(B,A)**
+* * *
+## Question 3: A JackKnife Estimate for the covariance matrix
+
+
+```{r}
+set.seed(34582)
+ssize <- 100
+diabetes_sample <- sample_n(Diabetes,ssize,replace = FALSE)
+k <- ncol(diabetes_sample)
+jackknife <- matrix(0,k,k)
+
+for (i in 1:ssize) {
+  jackknife = jackknife + cov(diabetes_sample[-i,])
+}
+
+# average jackknife value
+
+jackvalue <- jackknife / ssize
+
+# Compare
+
+diff <- jackvalue - cov(diabetes_sample)
+
+diff
+  
+
+```
+**Difference between jackknife value and actual value is close to 0**
+* * *
+
+## Question 5 : Comparing variances in measures of central tendency
+```{r}
+set.seed(34582)
+n <- 100
+cn <- rcauchy(n)
+mean(cn)
+median(cn)
+alpha <- 0.1
+mean(cn,trim = alpha)
+
+#Repeat 250 times
+Repeatntime <- 250
+meanrepeated <- numeric(Repeatntime)
+medianrepeated <- numeric(Repeatntime)
+trimmedrepeated <- numeric(Repeatntime)
+for (i in 1:Repeatntime) {
+  n = 100
+  nc = rcauchy(n)
+  meanrepeated[i] = mean(nc)
+  medianrepeated[i] = median(nc)
+  trimmedrepeated[i] = mean(nc,trim = 0.1)
+}
+hist(meanrepeated)
+hist(medianrepeated)
+hist(trimmedrepeated)
+var(meanrepeated)
+var(medianrepeated)
+var(trimmedrepeated)
+
+```
+**Obviously here we see that the median is the most robust estimator since it has the smallest variance**  
+
+* * *
+## Question 6 : Comparing Variances in measure with the T distribution
+```{r}
+set.seed(34582)
+n <- 100
+x <- rt(n,df = 2)
+mean(x)
+median(x)
+alpha <- 0.1
+mean(x,trim = alpha)
+
+# Repeat 250 times
+Repeated <- 250
+mean.Repeated <- numeric(Repeated)
+median.repeated <- numeric(Repeated)
+trimmed.repeated <- numeric(Repeated)
+for (i in 1:Repeated) {
+  n = 100
+  x = rt(n,df = 2)
+  mean.Repeated[i] = mean(x)
+  median.repeated[i] = median(x)
+  trimmed.repeated[i] = mean(x,trim = 0.1)
+}
+hist(mean.Repeated)
+hist(median.repeated)
+hist(trimmed.repeated)
+var(mean.Repeated)
+var(median.repeated)
+var(trimmed.repeated)
+
+```
+**After trying df = 2 and df = 10, the mean has the lowest variance as we increase the DF**  
+
+* * *
+## Question 7: Local Outlier Factor vs Isolation Forest
+```{r}
+outlier.data <- read_csv(file = "/Users/firasfakih/Desktop/outlier_set.csv")
+outlier.data <- outlier.data[,-1]
+install.packages("Rlof")
+library(Rlof)
+Lof <- lof(outlier.data,k = 5)
+library(solitude)
+isf <- isolationForest$new(sample_size = ceiling(nrow(outlier.data)))
+isf$fit(outlier.data)
+isfscores <- isf$scores
+outlier.data$lof <- Lof
+outlier.data$isf <- isfscores$anomaly_score
+library(ggplot2)
+library(gridExtra)
+plof <- qplot(x = X,y = Y,data = outlier.data,color = Lof) + ggtitle("LOF")
+pisf <- qplot(x=X,y=Y,data = outlier.data,color = isf) + ggtitle("Isolation Forest")
+
+grid.arrange(plof,pisf,nrow=1)
+
+```
+
+
+
+## Question 9 : Why do we want a high Breakdown Point?
+
+Because we want to deal with robust statistics. An estimate with a high BDP would need many influential outliers to be a bad estimator, which is good for modelling. 
+
+
+## Question 10: In what ways is the influence function a different measure of resistance for an estimator?
+
+The influence function is a measure of the dependence of the estimator on the value of one of the points in the sample. It is a model-free measure in the sense that it simply relies on calculating the estimator again with a different sample. Rather than the estimator as a whole. The influence function is also a measure of local robustness rather than global robustness.
+
+
+
+
+* * *
