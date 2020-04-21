@@ -1,0 +1,157 @@
+---
+title: "STAT 341/641 Lab: Week Three"
+author: "Firas Fakih"
+date: "15 February 2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+---
+
+**STAT 341/641:**        Intro to EDA and Statistical Computing  
+**Lab #3:**              A Brief Intro to EDA
+**Teaching Assistant:**  "Yanjun Liu"
+
+* * *
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages("tidyverse")
+```
+
+**Directions:**  The following contains tasks you must complete to receive full credit for this homework.  Consult the R markdown cheatsheet on canvas if you have questions about markdown syntax.
+
+* * *
+
+#**Task One:  Chapter 5 of R for Data Science**  
+
+Open the pdf document called 'Albert-Rizzo2012_Chapter_ExploratoryDataAnalysis.'  You will work through sections 5.1 to 5.5. Replicate each computation performed in the chapter and answer the associated questions.  You are not required to include the replication in this file.  But, you are required to solve the exercises.  This tutorial uses base R commands, but you are welcome to use the tidyverse package.  Also, you are encouraged to use the outlier detection methods introduced in the second and third lectures.  When you are asked to transform data, try using the Box-Cox method introduced in the first lecture.  Data sets for this laboratory are available on http://personal.bgsu.edu/~mrizzo/Rx/Rx-data/. 
+
+
+
+##5.1: Exploring percentages of small classes. 
+
+**Solution:**  (Write your code in the following block.  You can add additional blocks to in order to write text between the blocks.) 
+```{r}
+data <- read.table("/Users/firasfakih/Desktop/college.txt",header = TRUE,sep = "\t")
+head(data)
+college <- subset(data,complete.cases(data))
+# 5.1A - The data we see seems to be positiviely skewed (Right skewed) for second tier schools, and Left skewed for first tier schools
+stripchart(college$Pct.20,method = "jitter", pch = 19,xlab = "Small class percentage")
+#5.1B 
+identify(college$Pct.20,n = 1,labels = college$School,plot = TRUE)
+#5.1C Median = 47.5%
+med <- median(college$Pct.20)
+abline(v = med, col = "red")
+```
+##5.2: Relationship between the percentages of small classes and large classes.
+
+**Solution:**  
+```{r}
+#5.2A
+plot(college$Pct.20,college$Pct.50,xlab = "Percentage of small classes",ylab = "Percentage of big classes")
+#5.2B
+fit <- line(college$Pct.20,college$Pct.50)
+c <- coef(fit)
+abline(c,col="red")
+#5.2C - Around 9.8% of classess will have 50 or more students incase we have a 60% small class percentage.
+abline(v = 60)
+#5.2D
+plot(college$Pct.20,fit$residuals,xlab = "Percentage of small classes",ylab = "Residuals")
+abline(h = 0,col = "red")
+#5.2E - The pct20 residuals do not meet the assumptions, they do not meet the constant variance assumption as the residuals get smaller the higher the percentage is. Some of the data in the pct50 residual plot does not seem like continious data, variance is not constant either. Many points are overlapping in the pct50 residual plot. Pct50 residual plot also has a high residual for large pct50 compared to low residuals in the pct20 residual plot for low pct20 values.
+plot(college$Pct.50,fit$residuals,xlab = "Percentage of small classes",ylab = "Residuals")
+abline(h = 0,col="red")
+#5.2F
+
+
+
+
+
+```
+##5.3: Relationship between acceptance rate and ''top-ten``percentage. 
+
+**Solution:**  
+```{r}
+#5.3A
+plot(college$Accept.rate,college$Top.10,xlab = "Acceptance rate",ylab = "Percentage in top 10 of their class")
+fit <-line(college$Accept.rate,college$Top.10)
+abline(coef(fit),col = "red")
+plot(college$Accept.rate,fit$residuals,xlab = "Acceptance rate",ylab = "Residuals")
+abline(h = 0,col="red")
+#5.3B - Yes there is. The model of Acceptance Rate against Top 10 percent results in a negative relationship, meaning the higher the acceptance rate of a school, the less top 10 students are admitted. Elite schools are notoriously famous for having low acceptance rates. The model shows that when a school has a lower acceptance rates, more students in the top 10 of their schools are admitted. More proof supporting this conclusion, the residual plot shows an irregular variance. The residual plot clearly shows that as acceptance rate increases, the residuals increase or decrease massively, indication outliers (Rare that a top 10 student would attend a school with a high acceptance rate). The residual values around a low acceptance rate are close to 0, showing no fluctuation in the data, strongly supporting the idea of Clustering into "elite" and "non elite"
+```
+
+##5.4: Exploring the pattern of college enrollment in the United States.
+
+
+**Solution:**  
+```{r}
+#5.4A
+data2 <- read.table("/Users/firasfakih/Desktop/enrollment",header = TRUE)
+#5.4B
+fit2 <- lm(Enrollment ~ Year,data = data2,na.action = NULL)
+plot(data2$Year,data2$Enrollment,ylab = "Total Enrollment",xlab = "Year")
+abline(fit2,col="red")
+plot(data2$Year,fit2$residuals)
+abline(h=0,col="red")
+#5.4C - The transformed residual plot removes some of the curvature that was present (although some curvature is still present). It also adds in a constant variance element to the data so we can try to fit the assumptions of a linear model and provide a better model.
+logY <- log(data2$Enrollment)
+plot(data2$Year,logY,xlab = "Year",ylab = "Log Enrollment")
+transformedmodel <- lm(logY ~ data2$Year)
+abline(transformedmodel,col="red")
+plot(data2$Year,transformedmodel$residuals,xlab="Year",ylab = "Residuals")
+abline(h=0,col="red")
+#5.4D
+# As time goes on, enrollment sizes are getting larger and larger. It is a positive relationship.The growth of BGSU is a more steep growth, with a steeper gradient, this is because we are looking at one university. When looking at one institution the data is less likely to have outliers that will effect the data. Our example here takes statistics from all US higher education schools. The data has a higher variance
+```
+
+##5.5: Exploring percentages of full-time faculty. 
+
+**Solution:**  
+```{r}
+#5.5A - Data is left and negative skewed.
+hist(college$Full.time)
+#5.5B - The froot is more successful in approximating a symmetrical, unimodal distribution. The flog histogram provides a bimodal, right skewed plot.
+froot <- sqrt(college$Full.time) - sqrt(100-college$Full.time)
+flog <- log(college$Full.time + 0.5) - log(100 - college$Full.time +0.5)
+hist(froot)
+hist(flog)
+#5.5C - on the froot scale, approximately 68% of the data lies between [6.395,7.874].
+mean <- mean(froot)
+summary(froot)
+deviation <- sd(froot)
+hist(froot)
+abline(v = mean,col="red")
+abline(v = mean+deviation,col="red")
+
+```
+
+#5.6: Exploring alumni giving rates.
+
+**Solution:**  
+```{r}
+#5.6A
+stripchart(x = college$Alumni.giving,method = "stack",pch = 19)
+#5.6B
+
+#5.6C - The log transformation gives symmetric rates.
+root <- sqrt(college$Alumni.giving)
+loga <- log(college$Alumni.giving)
+stripchart(root,method = "stack",pch=19)
+stripchart(loga,method = "stack",pch = 19)
+
+```
+
+
+#5.7: Exploring alumni giving rates (continued).
+
+**Solution:**  
+```{r}
+
+```
+
+
+
+
+* * *

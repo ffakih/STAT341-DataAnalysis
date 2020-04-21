@@ -1,0 +1,143 @@
+---
+title: "STAT 341/641 Lab: Week Six"
+author: "Firas Fakih"
+date: "Sunday March 8 2020"
+output: html_document
+---
+---
+
+**STAT 341/641:**        Intro to EDA and Statistical Computing  
+**Lab #5:**              Rejection Sampling and the Bootstrap  
+**Teaching Assistant:**  "Erin Zhang"
+
+* * *
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Directions:**  You will use the lab time to complete this assignment.
+
+* * *
+
+#**Task: Practice rejection sampling and the bootstrap**  
+
+
+##1: Suppose we would like to obtain samples from a probability density that satisfies
+$$f(x) \propto \exp\left\{-x^2/2 \right\}(\sin(6x)^2 + 3\cos(x)^2).$$
+The symbol $\propto$ indicates that the density is proportional to $\exp\left\{-x^2/2 \right\}(\sin(6x)^2 + 3\cos(x)^2)$.  In general, two quantities $a$ and $b$ are proportional if $a = kb$ where $k$ is called the constant of proportionality.  For probability distributions, we frequently know the numerator, but not the denominator.  
+
+Anyway, find a number $M \geq 1$ such that the envelope condition holds for proposal distribution $g(x) = N(0,1).$  Recall the envelope condition is $f(x) \leq M g(x)$ for all $x$.  
+
+As a hint, look at the code chunk below.  Try looping over values for $M$.  Choose the smallest value of $M$ that satisfies the condition. 
+
+
+**Solution:**
+```{r}
+myseq <- seq(from = -4, to = 4, by = .1)
+f <- function(x){
+  exp(-x^2/2)*(sin(6*x)^2 + 3*cos(x)^2)
+}
+M <- 1
+while (!all(f(myseq) < M * dnorm(myseq))) {
+  M = M+1
+  
+}
+M
+```
+##2: Write a loop to obtain 1,000 samples from $f(\cdot)$.  How many iterations does it take to get 1,000 samples?  
+Edit the code chunk supplied below to accomplish this.
+
+**Solution:**  
+```{r}
+mynum <- 0
+N <- 1000
+fsamples <- NULL
+M <- 10
+i <- 0
+while(mynum < N){
+  i = i+1
+  ## sample from the proposal
+  mysamp <- rnorm(1)
+  
+  ## compute r
+  myr = (f(mysamp)) / (M*dnorm(mysamp))
+  
+  if(sample(c(0,1),1,prob = c(1-myr,myr)) == 1){
+    ## record the sample
+    fsamples <- c(fsamples, mysamp)
+    mynum <- mynum + 1
+  }
+  
+}
+
+```
+
+##3: Plot histograms of 1,000 samples from $Mg(x)$ and $f(x)$.  Use pastel colors with a low alpha (high level of transparency) in order to overlay the two distributions on the same plot.
+
+
+**Solution:**  
+```{r}
+library(ggplot2)
+library(reshape2)
+fx <- f(fsamples)
+Mgx <- M * dnorm(fsamples)
+data <- as.data.frame(cbind(Mgx,fx))
+data.melt <- melt(data)
+
+ggplot(data = data.melt, aes(value,fill = variable)) + geom_histogram(alpha = 0.75) +
+  labs (x = "F -Samples and M * g(x) distributions")
+
+```
+
+##4: Load the rousseeuw_outlier_set1.csv data set.  You are going to edit the code chunk below to create some interesting plots. For each bootstrap replication, record whether the first row of the data set has been chosen.  Then make two different plots of the regression lines:  one for all bootstrap samples with the first row and another for all bootstrap samples without the first row.  How many of the 1,000 bootstrap replications contain the first row?
+
+**Solution:**  
+```{r}
+set.seed(641)
+outs <- read.csv("/Users/firasfakih/Desktop/STAT341/Data/rousseeuw_outlier_set1.csv")
+R <- 1000
+beta1 <- matrix(0,R,2)
+beta2 <- matrix(0,R,2)
+for (j in c(1:R)){
+  ## sample indices to make bootstrap sample
+  inds <- sample(c(1:nrow(outs)),size = nrow(outs),replace = T)
+  ## compute the regression
+  res <- lm(Y ~ X, data = outs[inds,])
+  
+  if (1 %in% inds){
+    beta1[j,] <- coef(res)
+  }
+  else{
+    beta2[j,] <- coef(res)
+  }
+}
+
+betaMean1 <- colMeans(beta1)
+betaMean2 <- colMeans(beta2)
+
+
+mycols <- rainbow(R,alpha = .20)
+
+plot(outs,typ="n",xlab="input",ylab="output",main = "Regression with Outliers including first row")
+points(outs,pch = 20, col="blue")
+abline(res, col = "red")
+for (j in c(1:R)){
+  abline(a = beta1[j,1], b = beta1[j,2], col=mycols[j], lwd = .5)
+}
+
+# Bootstrap without first row
+
+plot(outs,typ="n",xlab="input",ylab="output",main = "Regression with Outliers (Withou
+t First row)")
+points(outs,pch = 20, col="blue")
+abline(res, col = "red")
+for (j in c(1:R)){
+abline(a = beta2[j,1], b = beta2[j,2], col = mycols[j], lwd = .5)
+}
+
+
+```
+
+
+* * *

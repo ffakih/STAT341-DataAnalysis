@@ -1,0 +1,102 @@
+---
+title: "STAT 341/641 Lab: Week Five"
+author: "Firas Fakih"
+date: "February 29 2020"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+---
+
+**STAT 341/641:**        Intro to EDA and Statistical Computing  
+**Lab #5:**              Loops and the Jackknife  
+**Teaching Assistant:**  "Erin Zhang"
+
+* * *
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Directions:**  You will use the lab time to complete this assignment.
+
+* * *
+
+#**Task: Analyze the Gapminder Data**  
+
+Install and load the gapminder data.
+```{r}
+#install.packages("gapminder")
+library(gapminder)
+library(dplyr)
+library(ggplot2)
+```
+
+
+##1: Compute the average life expectancy and GDP per capita by country using the data from 1987 to 2007.  Plot these values in a scatterplot.  Color the points by the continent to which they belong. 
+
+**Solution:**
+```{r}
+gapminder.new = subset(gapminder, year >= 1987 & year <= 2007)
+
+gap.df = gapminder.new %>% group_by(country,continent) %>% summarise(meanLifeExp = mean(lifeExp),meanGDP = mean(gdpPercap))
+
+ggplot(data = gap.df, aes(x = meanGDP,y = meanLifeExp)) + geom_point(aes(color = continent)) + ggtitle("Average GDP Per Capita vs Average Life Expectancy by Continent")
+```
+##2: Use the Mahalanobis distance method to detect outliers in the output from question one.  Which countries would you call outliers?  Why?
+
+**Solution:**  
+```{r}
+vars <- gap.df[,3:4]
+mu <- colMeans(vars)
+covar <- cov(vars)
+dists <- apply(vars, 1, mahalanobis, center = mu, cov = covar)
+eta <- sqrt(qchisq(0.975, 2, 0))
+mycols <- ifelse(dists < eta, "normal","outlier")
+gap.df$Status = mycols
+# Following countries are outliers
+filter(gap.df, Status == "outlier") %>% select(country)
+
+# They are Outliers because they are far away from the mean, so they have a low score on the mahalanobis distance scale
+```
+
+##3: Using the full dataset, implement the jackknife to identify which countries have a large influence on the $\beta_{\text{gdpPercap}}$ parameter in the regression equation
+$$ lifeExp_i = \alpha + \beta_{\text{gdpPercap}}gdpPercap_i + \beta_{\text{pop}}pop_i + \epsilon_i.$$
+To do this, write a for-loop.  In each iteration of the loop, drop one of the countries and compute the OLS coefficients.  Plot the value of $\beta_{\text{gdpPercap}}$ with the name of countries on the $x$-axis and the values of $\beta_{\text{gdpPercap}}$ on the $y$-axis.
+
+**Solution:**  
+```{r}
+beta <- c()
+countries <- gap.df$country
+for (i in 1:142){
+  data <- filter(gapminder,country != countries[i])
+  beta[i] = lm(lifeExp ~ pop + gdpPercap, data)$coef[3]
+}
+plot(countries,beta)
+identify(countries,beta,labels= countries)
+
+# Kuwait has the largest influence on Beta
+```
+
+##5.4: Write a for-loop to sample $N=1,704$ points with replacement from the data.  Do this $R=250$ times.  For each iteration compute the mean of the population.  Visualize the 250 means with a boxplot.  Then compute the variance of the means.  Compare this to the standard estimate for the variance of the sample mean
+$$\frac{\hat{\sigma}^2}{N}.$$
+
+**Solution:**  
+```{r}
+N <- 1704
+R <- 250
+means <- numeric(R)
+for (i in (1:R)){
+  list <- sample_n(gapminder,size = N,replace = TRUE)
+  means[i] = mean(list$pop)
+}
+boxplot(means)
+var(means)
+estimate <- (sd(means)^2)/N
+estimate
+
+# The standard estimate for the variance of the sample mean is smaller than the variance of the means.
+```
+
+
+* * *
