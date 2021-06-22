@@ -2,11 +2,12 @@
 
 ## Description
 
-* Anomaly Detection using Local Outlier Factor and Isolation Forest 
-* Clustering, merging, and Robust Regression, kmeans, kmedians
-* Exploratory Data Analysis
+* Anomaly Detection using Local Outlier Factor and Isolation Forest [https://github.com/ffakih/datascience-r-stat341/blob/master/HW1.html]
+* Clustering, merging, and Robust Regression, kmeans, kmedians [https://github.com/ffakih/datascience-r-stat341/blob/master/LabSeven.html]
+* Exploratory Data Analysis [https://github.com/ffakih/datascience-r-stat341/blob/master/LabWeekOne--2-.html]
 * Jackknife Sampling
-* Rejection Sampling and Bootstrapping
+* Rejection Sampling and Bootstrapping [https://github.com/ffakih/datascience-r-stat341/blob/master/LabSix.html]
+* UFO data analysis
 
 
 ### Dependencies
